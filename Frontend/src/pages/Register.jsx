@@ -6,6 +6,7 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -19,7 +20,7 @@ const Register = () => {
       await register(name, email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || "Registration failed"); // ✅ fixed
+      setError(err.response?.data?.error || err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -32,38 +33,25 @@ const Register = () => {
         <p style={styles.subtitle}>Join SaaS Chat today</p>
         {error && <div style={styles.error}>{error}</div>}
         <form onSubmit={handleSubmit}>
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            style={styles.input}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            style={styles.input}
-            type="password"
-            placeholder="Password (min 6 characters)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
+          <input style={styles.input} type="text" placeholder="Full Name"
+            value={name} onChange={(e) => setName(e.target.value)} required />
+          <input style={styles.input} type="email" placeholder="Email"
+            value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <div style={styles.passwordWrapper}>
+            <input style={styles.passwordInput}
+              type={showPassword ? "text" : "password"}
+              placeholder="Password (min 6 characters)" value={password}
+              onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+            <button type="button" style={styles.eyeBtn}
+              onClick={() => setShowPassword(!showPassword)}>
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
           <button style={styles.button} type="submit" disabled={loading}>
             {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
-        <p style={styles.link}>
-          Already have an account? <Link to="/login">Sign In</Link>
-        </p>
+        <p style={styles.link}>Already have an account? <Link to="/login">Sign In</Link></p>
       </div>
     </div>
   );
@@ -75,6 +63,9 @@ const styles = {
   title: { margin: "0 0 8px", fontSize: "24px", color: "#1a1a2e" },
   subtitle: { margin: "0 0 24px", color: "#666" },
   input: { width: "100%", padding: "12px", marginBottom: "16px", border: "1px solid #ddd", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box" },
+  passwordWrapper: { position: "relative", marginBottom: "16px" },
+  passwordInput: { width: "100%", padding: "12px 44px 12px 12px", border: "1px solid #ddd", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box" },
+  eyeBtn: { position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "18px" },
   button: { width: "100%", padding: "12px", background: "#6c63ff", color: "#fff", border: "none", borderRadius: "8px", fontSize: "16px", cursor: "pointer" },
   error: { background: "#ffe0e0", color: "#d00", padding: "10px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px" },
   link: { textAlign: "center", marginTop: "16px", fontSize: "14px" },

@@ -3,54 +3,37 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL?.trim();
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [currentUser, setCurrentUser] = useState(user);
+  const isPro = user?.subscriptionStatus === "pro";
 
   const fetchAndUpdate = async () => {
     try {
       const { data } = await axios.get(`${API}/api/auth/me`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      const updatedUser = { ...data.user, token: user.token };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setCurrentUser(updatedUser);
-      return updatedUser;
-    } catch (err) {
-      console.error(err);
-    }
+      updateUser(data.user);
+      return data.user;
+    } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-
     if (params.get("success")) {
-      setMessage("🎉 Payment successful! Verifying your subscription...");
+      setMessage("Payment successful! Verifying...");
       setTimeout(() => {
-        fetchAndUpdate().then((updatedUser) => {
-          if (updatedUser?.subscriptionStatus === "pro") {
-            setMessage("🎉 Successfully upgraded to Pro!");
-            setCurrentUser(updatedUser);
-          
-            setTimeout(() => {
-              window.location.replace("/dashboard");
-            }, 2000);
+        fetchAndUpdate().then((u) => {
+          if (u?.subscriptionStatus === "pro") {
+            setMessage("Successfully upgraded to Pro!");
           } else {
-           
             setTimeout(() => {
-              fetchAndUpdate().then((u) => {
-                setCurrentUser(u);
-                setMessage("🎉 Successfully upgraded to Pro!");
-                setTimeout(() => {
-                  window.location.replace("/dashboard");
-                }, 2000);
-              });
+              fetchAndUpdate().then(() => setMessage("🎉 Successfully upgraded to Pro!"));
             }, 3000);
           }
         });
@@ -60,40 +43,28 @@ const Dashboard = () => {
     } else {
       fetchAndUpdate();
     }
-  }, [location]);
+  }, [location.search]);
 
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.post(
-        `${API}/api/create-checkout-session`,
-        {},
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
+      const { data } = await axios.post(`${API}/api/create-checkout-session`, {},
+        { headers: { Authorization: `Bearer ${user.token}` } });
       window.location.href = data.url;
     } catch (err) {
       setMessage("Something went wrong. Try again.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleCancel = async () => {
     if (!window.confirm("Cancel your Pro subscription?")) return;
     try {
-      await axios.post(
-        `${API}/api/cancel-subscription`,
-        {},
-        { headers: { Authorization: `Bearer ${user.token}` } }
-      );
+      await axios.post(`${API}/api/cancel-subscription`, {},
+        { headers: { Authorization: `Bearer ${user.token}` } });
       setMessage("Subscription cancelled.");
-      setCurrentUser({ ...currentUser, subscriptionStatus: "free" });
-    } catch (err) {
-      setMessage("Error cancelling subscription.");
-    }
+      updateUser({ subscriptionStatus: "free" });
+    } catch (err) { setMessage("Error cancelling subscription."); }
   };
-
-  const isPro = currentUser?.subscriptionStatus === "pro";
 
   return (
     <div style={styles.container}>
@@ -101,18 +72,15 @@ const Dashboard = () => {
         <h1 style={styles.logo}>SaaS Chat</h1>
         <button style={styles.logoutBtn} onClick={logout}>Logout</button>
       </div>
-
       <div style={styles.content}>
         <div style={styles.welcomeCard}>
-          <h2>Welcome, {currentUser?.name || currentUser?.email}! 👋</h2>
-          <p style={styles.email}>{currentUser?.email}</p>
+          <h2>Welcome, {user?.name || user?.email}! 👋</h2>
+          <p style={styles.email}>{user?.email}</p>
           <div style={{ ...styles.planBadge, background: isPro ? "#6c63ff" : "#999" }}>
-            {isPro ? "⭐ Pro Plan" : "Free Plan"}
+            {isPro ? "Pro Plan" : "Free Plan"}
           </div>
         </div>
-
         {message && <div style={styles.message}>{message}</div>}
-
         <div style={styles.plansContainer}>
           <div style={styles.planCard}>
             <h3>Free Plan</h3>
@@ -120,11 +88,10 @@ const Dashboard = () => {
             <ul style={styles.features}>
               <li>View chat messages</li>
               <li>Cannot send messages</li>
-              <li>Real-time updates limited</li>
+              <li>Real-time limited</li>
             </ul>
             {!isPro && <div style={styles.currentPlan}>Current Plan</div>}
           </div>
-
           <div style={{ ...styles.planCard, border: "2px solid #6c63ff" }}>
             <h3 style={{ color: "#6c63ff" }}>Pro Plan ⭐</h3>
             <p style={styles.price}>$9 / month</p>
@@ -134,9 +101,7 @@ const Dashboard = () => {
               <li>Full chat access</li>
             </ul>
             {isPro ? (
-              <button style={styles.cancelBtn} onClick={handleCancel}>
-                Cancel Subscription
-              </button>
+              <button style={styles.cancelBtn} onClick={handleCancel}>Cancel Subscription</button>
             ) : (
               <button style={styles.upgradeBtn} onClick={handleUpgrade} disabled={loading}>
                 {loading ? "Redirecting..." : "Upgrade to Pro"}
@@ -144,7 +109,6 @@ const Dashboard = () => {
             )}
           </div>
         </div>
-
         <button style={styles.chatBtn} onClick={() => navigate("/chat")}>
           Go to Chat Room →
         </button>
@@ -159,9 +123,9 @@ const styles = {
   logo: { margin: 0, color: "#6c63ff" },
   logoutBtn: { padding: "8px 16px", background: "#ff4757", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" },
   content: { maxWidth: "800px", margin: "40px auto", padding: "0 16px" },
-  welcomeCard: { background: "#fff", padding: "24px", borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
+  welcomeCard: { background: "#fff", padding: "24px", borderRadius: "12px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", textAlign: "center" },
   email: { color: "#666", margin: "4px 0 12px" },
-  planBadge: { display: "inline-block", padding: "4px 12px", borderRadius: "20px", color: "#fff", fontSize: "14px" },
+  planBadge: { display: "inline-block", padding: "6px 16px", borderRadius: "20px", color: "#fff", fontSize: "14px", fontWeight: "bold" },
   message: { background: "#e8f4fd", padding: "12px 16px", borderRadius: "8px", marginBottom: "24px", color: "#333" },
   plansContainer: { display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" },
   planCard: { flex: 1, minWidth: "250px", background: "#fff", padding: "24px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)", border: "2px solid transparent" },
