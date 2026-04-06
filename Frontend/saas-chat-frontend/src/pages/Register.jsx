@@ -1,0 +1,83 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+const Register = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await register(name, email, password);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Registration failed"); // ✅ fixed
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Create Account</h2>
+        <p style={styles.subtitle}>Join SaaS Chat today</p>
+        {error && <div style={styles.error}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <input
+            style={styles.input}
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            style={styles.input}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            style={styles.input}
+            type="password"
+            placeholder="Password (min 6 characters)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
+            required
+          />
+          <button style={styles.button} type="submit" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+        </form>
+        <p style={styles.link}>
+          Already have an account? <Link to="/login">Sign In</Link>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const styles = {
+  container: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f2f5" },
+  card: { background: "#fff", padding: "40px", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", width: "100%", maxWidth: "400px" },
+  title: { margin: "0 0 8px", fontSize: "24px", color: "#1a1a2e" },
+  subtitle: { margin: "0 0 24px", color: "#666" },
+  input: { width: "100%", padding: "12px", marginBottom: "16px", border: "1px solid #ddd", borderRadius: "8px", fontSize: "14px", boxSizing: "border-box" },
+  button: { width: "100%", padding: "12px", background: "#6c63ff", color: "#fff", border: "none", borderRadius: "8px", fontSize: "16px", cursor: "pointer" },
+  error: { background: "#ffe0e0", color: "#d00", padding: "10px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px" },
+  link: { textAlign: "center", marginTop: "16px", fontSize: "14px" },
+};
+
+export default Register;
